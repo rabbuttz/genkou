@@ -117,6 +117,8 @@ h1 {
     position: relative;
     color: var(--text-ink);
     line-height: 1;
+    /* Ensure vertical context for the cell */
+    writing-mode: vertical-rl;
 }
 
 .grid-cell:last-child {
@@ -129,6 +131,32 @@ h1 {
 
 .grid-cell.occupied {
     cursor: default;
+}
+
+/* Time remaining tooltip */
+.time-remaining {
+    position: absolute;
+    top: -20px;
+    left: 50%;
+    transform: translateX(-50%);
+    font-size: 9px;
+    background: var(--paper-color);
+    color: var(--line-color);
+    padding: 2px 6px;
+    border-radius: 4px;
+    border: 1px solid var(--line-color-light);
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.3s ease, transform 0.3s ease;
+    white-space: nowrap;
+    z-index: 20;
+    font-weight: bold;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+}
+
+.grid-cell.occupied:hover .time-remaining {
+    opacity: 1;
+    transform: translateX(-50%) translateY(-2px);
 }
 
 /* Spine / Gutter */
@@ -279,7 +307,9 @@ button:disabled {
 /* Animations */
 .char {
     display: inline-block;
-    vertical-align: middle;
+    /* Use vertical writing mode for correct glyph variants (periods, brackets) */
+    writing-mode: vertical-rl;
+    text-orientation: mixed;
     animation: inkSoak 1.2s cubic-bezier(0.25, 1, 0.5, 1) forwards;
 }
 
@@ -297,8 +327,7 @@ button:disabled {
 
     100% {
         opacity: 1;
-        transform: scale(1) translate(-0.04em, -0.06em);
-        /* Nudged down slightly from -0.12em */
+        transform: scale(1);
         filter: blur(0);
     }
 }

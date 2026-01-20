@@ -116,6 +116,19 @@ function renderSquare(sq, isNew) {
         charSpan.className = 'char';
         charSpan.textContent = sq.character;
         cell.appendChild(charSpan);
+
+        // Add time remaining tooltip
+        const timeSpan = document.createElement('span');
+        timeSpan.className = 'time-remaining';
+        cell.appendChild(timeSpan);
+
+        cell.addEventListener('mouseenter', () => {
+            const created = new Date(sq.created_at).getTime();
+            const expires = created + 3600000; // 1 hour later
+            const remaining = expires - Date.now();
+            const mins = Math.max(0, Math.ceil(remaining / 60000));
+            timeSpan.textContent = `あと ${mins} 分`;
+        });
     }
 }
 
@@ -194,6 +207,13 @@ submitBtn.addEventListener('click', async () => {
 
 cancelBtn.addEventListener('click', () => {
     inputModal.classList.add('hidden');
+});
+
+// Close modal when clicking outside
+inputModal.addEventListener('click', (e) => {
+    if (e.target === inputModal) {
+        inputModal.classList.add('hidden');
+    }
 });
 
 const closeCooldown = () => {
