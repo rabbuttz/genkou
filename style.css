@@ -148,9 +148,10 @@ h1 {
     position: absolute;
     color: var(--line-color);
     font-weight: 900;
-    font-size: 16px;
-    left: calc(50% + 1.5px);
-    /* Micro-adjustment for optical centering */
+    font-size: 14px;
+    /* Reduced from 16px */
+    left: calc(50% + 0.5px);
+    /* Moved slightly left from 1.5px */
     z-index: 1;
     background-color: var(--paper-color);
     width: 1.2em;
@@ -162,7 +163,8 @@ h1 {
 
 .gyobi-mark.top {
     top: 25%;
-    transform: translate(-50%, -50%) rotate(90deg) scale(0.6, 1.8);
+    transform: translate(-50%, -50%) rotate(90deg) scale(0.5, 1.5);
+    /* Scaled down slightly */
 }
 
 .gyobi-mark.top::after {
@@ -171,7 +173,8 @@ h1 {
 
 .gyobi-mark.bottom {
     bottom: 25%;
-    transform: translate(-50%, 50%) rotate(90deg) scale(0.6, 1.8);
+    transform: translate(-50%, 50%) rotate(90deg) scale(0.5, 1.5);
+    /* Scaled down slightly */
 }
 
 .gyobi-mark.bottom::after {
@@ -294,8 +297,8 @@ button:disabled {
 
     100% {
         opacity: 1;
-        transform: scale(1) translate(-0.04em, 0.06em);
-        /* Nudged down and left to fix top-right offset */
+        transform: scale(1) translate(-0.04em, -0.12em);
+        /* Nudged UP more to fix downward shift */
         filter: blur(0);
     }
 }

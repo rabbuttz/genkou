@@ -61,16 +61,31 @@ function initGrid() {
     }
 }
 
-// Fetch squares
+// Fetch squares (Only last 1 hour)
 async function fetchSquares() {
+    const oneHourAgo = new Date(Date.now() - 3600000).toISOString();
     const { data, error } = await supabaseClient
         .from('squares')
-        .select('*');
+        .select('*')
+        .gt('created_at', oneHourAgo);
 
     if (error) {
         showToast('データの取得に失敗しました');
         return;
     }
+
+    // Clear grid of characters that should have vanished
+    const cells = document.querySelectorAll('.grid-cell.occupied');
+    cells.forEach(cell => {
+        // Find if this cell is still represented in the data
+        const r = cell.dataset.row;
+        const c = cell.dataset.col;
+        const stillExists = data.find(sq => sq.row_idx == r && sq.col_idx == c);
+        if (!stillExists) {
+            cell.classList.remove('occupied');
+            cell.innerHTML = '';
+        }
+    });
 
     const previousIds = new Set(squares.map(s => s.id));
     squares = data;
@@ -159,8 +174,8 @@ submitBtn.addEventListener('click', async () => {
         return;
     }
 
-    lastPostedTime = Date.now();
-    localStorage.setItem('last_posted_time', lastPostedTime);
+    localStorage.setItem('last_posted_time', Date.now()); // Update lastPostedTime to current time
+    lastPostedTime = Date.now(); // Update in-memory variable as well
 
     inputModal.classList.add('hidden');
     submitBtn.textContent = originalText;
