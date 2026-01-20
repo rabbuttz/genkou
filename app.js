@@ -21,14 +21,15 @@ let timerInterval = null;
 
 // DOM Elements
 const inputModal = document.getElementById('input-modal');
+const cooldownOverlay = document.getElementById('cooldown-overlay');
 const charInput = document.getElementById('char-input');
 const submitBtn = document.getElementById('submit-btn');
 const cancelBtn = document.getElementById('cancel-btn');
+const cooldownCloseBtn = document.getElementById('cooldown-close-btn');
 const timerVal = document.getElementById('timer-val');
-const cooldownMsg = document.getElementById('cooldown-timer');
 const toast = document.getElementById('toast');
 
-// Initialize Grid using the new block/column structure
+// Initialize Grid
 function initGrid() {
     const rightBlock = document.getElementById('right-block');
     const leftBlock = document.getElementById('left-block');
@@ -37,7 +38,6 @@ function initGrid() {
     rightBlock.innerHTML = '';
     leftBlock.innerHTML = '';
 
-    // Generate 21 columns (0-20), skipping 10 for the spine
     for (let c = 0; c < 21; c++) {
         if (c === 10) continue;
 
@@ -61,7 +61,7 @@ function initGrid() {
     }
 }
 
-// Fetch all squares from database
+// Fetch squares
 async function fetchSquares() {
     const { data, error } = await supabaseClient
         .from('squares')
@@ -80,7 +80,7 @@ async function fetchSquares() {
     });
 }
 
-// Render a single square
+// Render square
 function renderSquare(sq, isNew) {
     const cell = document.querySelector(`.grid-cell[data-row="${sq.row_idx}"][data-col="${sq.col_idx}"]`);
     if (cell && !cell.classList.contains('occupied')) {
@@ -113,7 +113,6 @@ function handleCellClick(r, c) {
 
     selectedCell = { r, c };
     inputModal.classList.remove('hidden');
-    cooldownMsg.classList.add('hidden');
     charInput.value = '';
     charInput.focus();
     updateSubmitState();
@@ -172,13 +171,16 @@ submitBtn.addEventListener('click', async () => {
 
 cancelBtn.addEventListener('click', () => {
     inputModal.classList.add('hidden');
+});
+
+cooldownCloseBtn.addEventListener('click', () => {
+    cooldownOverlay.classList.add('hidden');
     if (timerInterval) clearInterval(timerInterval);
 });
 
 function showCooldown(ms) {
     if (timerInterval) clearInterval(timerInterval);
-    cooldownMsg.classList.remove('hidden');
-    inputModal.classList.remove('hidden');
+    cooldownOverlay.classList.remove('hidden');
 
     const endTime = Date.now() + ms;
 
@@ -186,7 +188,7 @@ function showCooldown(ms) {
         const remaining = endTime - Date.now();
         if (remaining <= 0) {
             clearInterval(timerInterval);
-            inputModal.classList.add('hidden');
+            cooldownOverlay.classList.add('hidden');
             return;
         }
         updateTimer(remaining);

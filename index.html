@@ -45,7 +45,15 @@
                     <button id="submit-btn" disabled>刻む</button>
                     <button id="cancel-btn">戻る</button>
                 </div>
-                <p id="cooldown-timer" class="hidden">次の呼吸まで: <span id="timer-val">00:00</span></p>
+            </div>
+        </div>
+
+        <div id="cooldown-overlay" class="hidden">
+            <div class="cooldown-content">
+                <div class="zen-circle"></div>
+                <p class="cooldown-text">呼吸を整えています...</p>
+                <p id="cooldown-timer"><span id="timer-val">00:00</span></p>
+                <button id="cooldown-close-btn">戻る</button>
             </div>
         </div>
 
