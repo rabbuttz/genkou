@@ -182,6 +182,12 @@ function showCooldown(ms) {
     if (timerInterval) clearInterval(timerInterval);
     cooldownOverlay.classList.remove('hidden');
 
+    // Auto-return after 1 second
+    setTimeout(() => {
+        cooldownOverlay.classList.add('hidden');
+        if (timerInterval) clearInterval(timerInterval);
+    }, 1000);
+
     const endTime = Date.now() + ms;
 
     const update = () => {

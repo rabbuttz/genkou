@@ -294,8 +294,8 @@ button:disabled {
 
     100% {
         opacity: 1;
-        transform: scale(1) translateY(-0.15em);
-        /* Pulled up slightly more for visual center */
+        transform: scale(1) translate(-0.04em, 0.06em);
+        /* Nudged down and left to fix top-right offset */
         filter: blur(0);
     }
 }
