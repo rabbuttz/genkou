@@ -17,9 +17,9 @@ if (!userFingerprint) {
 
 let selectedCell = null;
 let lastPostedTime = parseInt(localStorage.getItem('last_posted_time') || "0");
+let timerInterval = null;
 
 // DOM Elements
-const gridOverlay = document.getElementById('grid-overlay');
 const inputModal = document.getElementById('input-modal');
 const charInput = document.getElementById('char-input');
 const submitBtn = document.getElementById('submit-btn');
@@ -28,22 +28,35 @@ const timerVal = document.getElementById('timer-val');
 const cooldownMsg = document.getElementById('cooldown-timer');
 const toast = document.getElementById('toast');
 
-// Initialize Grid
+// Initialize Grid using the new block/column structure
 function initGrid() {
-    gridOverlay.innerHTML = '';
-    for (let r = 0; r < 20; r++) {
-        for (let c = 0; c < 21; c++) {
+    const rightBlock = document.getElementById('right-block');
+    const leftBlock = document.getElementById('left-block');
+    if (!rightBlock || !leftBlock) return;
+
+    rightBlock.innerHTML = '';
+    leftBlock.innerHTML = '';
+
+    // Generate 21 columns (0-20), skipping 10 for the spine
+    for (let c = 0; c < 21; c++) {
+        if (c === 10) continue;
+
+        const column = document.createElement('div');
+        column.className = 'column';
+
+        for (let r = 0; r < 20; r++) {
             const cell = document.createElement('div');
             cell.className = 'grid-cell';
             cell.dataset.row = r;
             cell.dataset.col = c;
+            cell.addEventListener('click', () => handleCellClick(r, c));
+            column.appendChild(cell);
+        }
 
-            if (c === 10) {
-                cell.classList.add('spine');
-            } else {
-                cell.addEventListener('click', () => handleCellClick(r, c));
-            }
-            gridOverlay.appendChild(cell);
+        if (c < 10) {
+            rightBlock.appendChild(column);
+        } else {
+            leftBlock.appendChild(column);
         }
     }
 }
@@ -94,8 +107,7 @@ function handleCellClick(r, c) {
     const diff = now - lastPostedTime;
 
     if (diff < waitTime) {
-        const remaining = waitTime - diff;
-        showCooldown(remaining);
+        showCooldown(waitTime - diff);
         return;
     }
 
@@ -121,6 +133,7 @@ submitBtn.addEventListener('click', async () => {
     if (!char || !selectedCell) return;
 
     submitBtn.disabled = true;
+    const originalText = submitBtn.textContent;
     submitBtn.textContent = '刻印中...';
 
     const { error } = await supabaseClient
@@ -143,7 +156,7 @@ submitBtn.addEventListener('click', async () => {
             showToast('エラーが発生しました: ' + error.message);
         }
         submitBtn.disabled = false;
-        submitBtn.textContent = '刻む';
+        submitBtn.textContent = originalText;
         return;
     }
 
@@ -151,7 +164,7 @@ submitBtn.addEventListener('click', async () => {
     localStorage.setItem('last_posted_time', lastPostedTime);
 
     inputModal.classList.add('hidden');
-    submitBtn.textContent = '刻む';
+    submitBtn.textContent = originalText;
 
     showToast('一文字、刻みました');
     fetchSquares();
@@ -159,12 +172,28 @@ submitBtn.addEventListener('click', async () => {
 
 cancelBtn.addEventListener('click', () => {
     inputModal.classList.add('hidden');
+    if (timerInterval) clearInterval(timerInterval);
 });
 
 function showCooldown(ms) {
+    if (timerInterval) clearInterval(timerInterval);
     cooldownMsg.classList.remove('hidden');
     inputModal.classList.remove('hidden');
-    updateTimer(ms);
+
+    const endTime = Date.now() + ms;
+
+    const update = () => {
+        const remaining = endTime - Date.now();
+        if (remaining <= 0) {
+            clearInterval(timerInterval);
+            inputModal.classList.add('hidden');
+            return;
+        }
+        updateTimer(remaining);
+    };
+
+    update();
+    timerInterval = setInterval(update, 1000);
 }
 
 function updateTimer(ms) {

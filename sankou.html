@@ -1,0 +1,345 @@
+<!DOCTYPE html>
+<html lang="ja">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>原稿用紙 20x20</title>
+    <style>
+        :root {
+            /* 原稿用紙の色 */
+            --grid-color: #d68550;
+            --grid-color-light: #e69b6a;
+            --bg-color: #fff;
+            --cell-size: 32px;
+            /* 行間の隙間 */
+            --gap-size: 8px;
+            --text-color: #333;
+
+            /* 線の太さ定義 */
+            --border-thick: 3px;
+            /* 外枠の太線 */
+            --border-thin: 1px;
+            /* マスの細線 */
+        }
+
+        body {
+            background-color: #f0f0f0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+            padding: 40px 20px;
+            font-family: "Yu Mincho", "Hiragino Mincho ProN", serif;
+        }
+
+        .guide-text {
+            margin-bottom: 20px;
+            color: #555;
+            font-size: 0.9rem;
+        }
+
+        /* 用紙全体 */
+        .paper {
+            background-color: var(--bg-color);
+            padding: 50px 70px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.15);
+            position: relative;
+            /* フレックス解除し、ブロック配置は内部のmain-frameに任せる */
+            display: block;
+            width: fit-content;
+            max-width: 100%;
+            overflow-x: auto;
+        }
+
+        /* 【新設】全体を囲む大枠 */
+        .main-frame {
+            display: flex;
+            flex-direction: row-reverse;
+            /* ここで全体を囲む太枠を設定 */
+            border: var(--border-thick) solid var(--grid-color);
+            /* 中央部分の背景色調整 */
+            background-color: transparent;
+        }
+
+        /* 左右のブロック（10行の塊） */
+        .block {
+            display: flex;
+            flex-direction: row-reverse;
+            gap: var(--gap-size);
+
+            /* ブロックごとの枠線は削除 */
+            border: none;
+
+            /* 外枠との余白（ルビ振りスペース）を確保 */
+            padding: 0 var(--gap-size);
+        }
+
+        /* 1つの縦列（行） */
+        .column {
+            display: flex;
+            flex-direction: column;
+            width: var(--cell-size);
+
+            /* 行の左右は細い線で区切る */
+            border-left: var(--border-thin) solid var(--grid-color);
+            border-right: var(--border-thin) solid var(--grid-color);
+        }
+
+        /* 1つのマス */
+        .cell {
+            width: 100%;
+            height: var(--cell-size);
+            border-bottom: var(--border-thin) solid var(--grid-color-light);
+            box-sizing: border-box;
+
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 20px;
+            line-height: 1;
+            color: var(--text-color);
+            outline: none;
+            cursor: text;
+        }
+
+        .cell:last-child {
+            border-bottom: none;
+        }
+
+        .cell:focus {
+            background-color: rgba(230, 155, 106, 0.15);
+        }
+
+        /* --- 魚尾（中央の飾り） --- */
+        .center-gutter {
+            width: 36px;
+            position: relative;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+
+            /* 魚尾スペースの左右を太線で区切る（外枠と一体化させる） */
+            border-left: var(--border-thick) solid var(--grid-color);
+            border-right: var(--border-thick) solid var(--grid-color);
+
+            /* ボーダー分の幅が増えるので背景調整 */
+            background-color: var(--bg-color);
+        }
+
+        /* 魚尾マーク */
+        .gyobi-mark {
+            position: absolute;
+            color: var(--grid-color);
+            font-family: "Yu Mincho", serif;
+            font-weight: 900;
+
+            /* フォントサイズを小さくして枠内に収める */
+            font-size: 14px;
+            line-height: 1;
+
+            /* 【修正】視覚的に右に寄って見えるため、左(46%)に寄せて補正 */
+            left: 46%;
+
+            /* z-indexで線より上に */
+            z-index: 1;
+            background-color: var(--bg-color);
+            /* 線と被る場合の透過防止 */
+
+            width: 1em;
+            height: 1em;
+            text-align: center;
+
+            /* センタリングの基準点を要素の中心に */
+            margin-left: -0.5em;
+            margin-top: -0.5em;
+        }
+
+        .gyobi-mark::after {
+            display: block;
+            width: 100%;
+            height: 100%;
+        }
+
+        .gyobi-mark.top {
+            top: 24%;
+            /* 回転と拡大縮小 */
+            transform: rotate(90deg) scale(0.8, 2.0);
+        }
+
+        .gyobi-mark.top::after {
+            content: "【";
+        }
+
+        .gyobi-mark.bottom {
+            bottom: 24%;
+            transform: rotate(90deg) scale(0.8, 2.0);
+        }
+
+        .gyobi-mark.bottom::after {
+            content: "】";
+        }
+
+        /* 折り目トンボ */
+        .tombo-top,
+        .tombo-bottom {
+            position: absolute;
+            width: 1px;
+            height: 10px;
+            background-color: var(--grid-color);
+            left: 50%;
+            transform: translateX(-50%);
+        }
+
+        .tombo-top {
+            top: 20px;
+        }
+
+        /* 位置調整 */
+        .tombo-bottom {
+            bottom: 20px;
+        }
+
+
+        /* フッターテキスト */
+        .footer-text {
+            position: absolute;
+            bottom: 15px;
+            left: 70px;
+            color: var(--grid-color);
+            font-size: 13px;
+            font-weight: bold;
+            letter-spacing: 1px;
+        }
+
+        @media (max-width: 900px) {
+            .paper {
+                padding: 20px;
+                transform: scale(0.65);
+                transform-origin: top center;
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="guide-text">
+        マスをクリックすると入力できます。<br>
+        （自動的に縦書き方向にカーソルが移動します）
+    </div>
+
+    <div class="paper">
+        <div class="tombo-top"></div>
+        <div class="tombo-bottom"></div>
+
+        <!-- 全体を囲む太枠ラッパーを追加 -->
+        <div class="main-frame">
+            <div class="block" id="right-block"></div>
+
+            <div class="center-gutter">
+                <div class="gyobi-mark top"></div>
+                <div class="gyobi-mark bottom"></div>
+            </div>
+
+            <div class="block" id="left-block"></div>
+        </div>
+
+        <div class="footer-text">20 × 20</div>
+    </div>
+
+    <script>
+        function createBlock(blockId) {
+            const block = document.getElementById(blockId);
+            for (let i = 0; i < 10; i++) {
+                const column = document.createElement('div');
+                column.className = 'column';
+                for (let j = 0; j < 20; j++) {
+                    const cell = document.createElement('div');
+                    cell.className = 'cell';
+                    cell.contentEditable = true;
+
+                    cell.addEventListener('input', function (e) {
+                        if (this.innerText.length > 1) {
+                            this.innerText = this.innerText.substring(0, 1);
+                            moveCursorToEnd(this);
+                        }
+                    });
+
+                    cell.addEventListener('keydown', function (e) {
+                        if (e.key === 'Enter') {
+                            e.preventDefault();
+                            moveToNextCell(this);
+                        }
+                        if (e.key === 'Backspace' && this.innerText === '') {
+                            e.preventDefault();
+                            moveToPrevCell(this);
+                        }
+                    });
+                    column.appendChild(cell);
+                }
+                block.appendChild(column);
+            }
+        }
+
+        function moveCursorToEnd(element) {
+            const range = document.createRange();
+            const sel = window.getSelection();
+            range.selectNodeContents(element);
+            range.collapse(false);
+            sel.removeAllRanges();
+            sel.addRange(range);
+        }
+
+        function moveToNextCell(currentCell) {
+            let next = currentCell.nextElementSibling;
+            if (!next) {
+                const col = currentCell.parentElement;
+                const nextCol = col.previousElementSibling;
+
+                if (nextCol) {
+                    next = nextCol.firstElementChild;
+                } else {
+                    const currentBlockId = col.parentElement.id;
+                    if (currentBlockId === 'right-block') {
+                        const leftBlock = document.getElementById('left-block');
+                        const firstColInVisual = leftBlock.lastElementChild;
+                        if (firstColInVisual) next = firstColInVisual.firstElementChild;
+                    }
+                }
+            }
+            if (next) next.focus();
+        }
+
+        function moveToPrevCell(currentCell) {
+            let prev = currentCell.previousElementSibling;
+            if (!prev) {
+                const col = currentCell.parentElement;
+                const prevCol = col.nextElementSibling;
+
+                if (prevCol) {
+                    prev = prevCol.lastElementChild;
+                } else {
+                    const currentBlockId = col.parentElement.id;
+                    if (currentBlockId === 'left-block') {
+                        const rightBlock = document.getElementById('right-block');
+                        const lastColInVisual = rightBlock.firstElementChild;
+                        if (lastColInVisual) prev = lastColInVisual.lastElementChild;
+                    }
+                }
+            }
+            if (prev) {
+                prev.focus();
+                moveCursorToEnd(prev);
+            }
+        }
+
+        createBlock('right-block');
+        createBlock('left-block');
+    </script>
+
+</body>
+
+</html>
