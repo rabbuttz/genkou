@@ -116,6 +116,7 @@ h1 {
     user-select: none;
     position: relative;
     color: var(--text-ink);
+    line-height: 1;
 }
 
 .grid-cell:last-child {
@@ -148,7 +149,8 @@ h1 {
     color: var(--line-color);
     font-weight: 900;
     font-size: 16px;
-    left: 49%;
+    left: calc(50% + 1.5px);
+    /* Micro-adjustment for optical centering */
     z-index: 1;
     background-color: var(--paper-color);
     width: 1.2em;
@@ -156,13 +158,11 @@ h1 {
     display: flex;
     justify-content: center;
     align-items: center;
-    margin-left: -0.6em;
-    margin-top: -0.6em;
 }
 
 .gyobi-mark.top {
     top: 25%;
-    transform: rotate(90deg) scale(0.6, 1.8);
+    transform: translate(-50%, -50%) rotate(90deg) scale(0.6, 1.8);
 }
 
 .gyobi-mark.top::after {
@@ -171,7 +171,7 @@ h1 {
 
 .gyobi-mark.bottom {
     bottom: 25%;
-    transform: rotate(90deg) scale(0.6, 1.8);
+    transform: translate(-50%, 50%) rotate(90deg) scale(0.6, 1.8);
 }
 
 .gyobi-mark.bottom::after {
@@ -276,6 +276,7 @@ button:disabled {
 /* Animations */
 .char {
     display: inline-block;
+    vertical-align: middle;
     animation: inkSoak 1.2s cubic-bezier(0.25, 1, 0.5, 1) forwards;
 }
 
@@ -293,7 +294,8 @@ button:disabled {
 
     100% {
         opacity: 1;
-        transform: scale(1) translateY(2px);
+        transform: scale(1) translateY(-0.15em);
+        /* Pulled up slightly more for visual center */
         filter: blur(0);
     }
 }
