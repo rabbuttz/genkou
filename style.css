@@ -341,7 +341,14 @@ button:disabled {
     justify-content: center;
     align-items: center;
     z-index: 110;
-    transition: opacity 0.5s ease;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.8s cubic-bezier(0.25, 1, 0.5, 1);
+}
+
+#cooldown-overlay.visible {
+    opacity: 1;
+    pointer-events: auto;
 }
 
 .cooldown-content {
@@ -350,6 +357,12 @@ button:disabled {
     flex-direction: column;
     align-items: center;
     gap: 2rem;
+    transition: transform 0.8s cubic-bezier(0.25, 1, 0.5, 1);
+    transform: scale(0.95);
+}
+
+#cooldown-overlay.visible .cooldown-content {
+    transform: scale(1);
 }
 
 .zen-circle {

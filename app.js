@@ -173,20 +173,20 @@ cancelBtn.addEventListener('click', () => {
     inputModal.classList.add('hidden');
 });
 
-cooldownCloseBtn.addEventListener('click', () => {
-    cooldownOverlay.classList.add('hidden');
+const closeCooldown = () => {
+    cooldownOverlay.classList.remove('visible');
     if (timerInterval) clearInterval(timerInterval);
+};
+
+cooldownOverlay.addEventListener('click', closeCooldown);
+cooldownCloseBtn.addEventListener('click', (e) => {
+    e.stopPropagation(); // Prevent double trigger
+    closeCooldown();
 });
 
 function showCooldown(ms) {
     if (timerInterval) clearInterval(timerInterval);
-    cooldownOverlay.classList.remove('hidden');
-
-    // Auto-return after 1 second
-    setTimeout(() => {
-        cooldownOverlay.classList.add('hidden');
-        if (timerInterval) clearInterval(timerInterval);
-    }, 1000);
+    cooldownOverlay.classList.add('visible');
 
     const endTime = Date.now() + ms;
 
@@ -194,7 +194,7 @@ function showCooldown(ms) {
         const remaining = endTime - Date.now();
         if (remaining <= 0) {
             clearInterval(timerInterval);
-            cooldownOverlay.classList.add('hidden');
+            cooldownOverlay.classList.remove('visible');
             return;
         }
         updateTimer(remaining);
