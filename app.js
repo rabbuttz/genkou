@@ -15,6 +15,9 @@ if (!userFingerprint) {
     localStorage.setItem('genkou_fingerprint', userFingerprint);
 }
 
+// Prepare fingerprint for API (add debug prefix if needed)
+const getApiFingerprint = () => isDebug() ? `debug-${userFingerprint}` : userFingerprint;
+
 let selectedCell = null;
 let lastPostedTime = parseInt(localStorage.getItem('last_posted_time') || "0");
 let timerInterval = null;
@@ -162,7 +165,7 @@ submitBtn.addEventListener('click', async () => {
                 row_idx: selectedCell.r,
                 col_idx: selectedCell.c,
                 character: char,
-                user_fingerprint: userFingerprint
+                user_fingerprint: getApiFingerprint()
             }
         ]);
 
