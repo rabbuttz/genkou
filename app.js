@@ -19,6 +19,9 @@ let selectedCell = null;
 let lastPostedTime = parseInt(localStorage.getItem('last_posted_time') || "0");
 let timerInterval = null;
 
+// Debug Mode Check
+const isDebug = () => localStorage.getItem('genkou_debug') === 'true';
+
 // DOM Elements
 const inputModal = document.getElementById('input-modal');
 const cooldownOverlay = document.getElementById('cooldown-overlay');
@@ -121,7 +124,7 @@ function handleCellClick(r, c) {
     const now = Date.now();
     const diff = now - lastPostedTime;
 
-    if (diff < waitTime) {
+    if (diff < waitTime && !isDebug()) {
         showCooldown(waitTime - diff);
         return;
     }
@@ -134,7 +137,9 @@ function handleCellClick(r, c) {
 }
 
 charInput.addEventListener('input', () => {
-    charInput.value = charInput.value.trim().substring(0, 1);
+    if (!isDebug()) {
+        charInput.value = charInput.value.trim().substring(0, 1);
+    }
     updateSubmitState();
 });
 
