@@ -91,11 +91,10 @@ main {
 
 #grid-overlay {
     position: absolute;
-    top: 5.5%;
-    /* Adjusting for paper margins */
-    left: 4.8%;
-    right: 4.8%;
-    bottom: 5.5%;
+    top: 8.6%;
+    left: 7.44%;
+    right: 7.44%;
+    bottom: 8.6%;
     display: grid;
     /* 10 columns + spine (hashira) + 10 columns */
     grid-template-columns: repeat(10, 1fr) 1fr repeat(10, 1fr);
