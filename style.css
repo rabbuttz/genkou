@@ -518,7 +518,7 @@ button:disabled {
 }
 
 /* Responsive scale */
-@media (max-width: 900px) {
+@media (max-width: 1350px) {
     .paper {
         transform: scale(0.65) rotateX(0deg);
         transform-origin: top center;

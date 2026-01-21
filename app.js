@@ -7,8 +7,10 @@ const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
 // State Management
 let squares = [];
+let cellLocks = [];
 const waitTime = 10 * 60 * 1000; // 10 mins
 const vanishTime = 3 * 60 * 60 * 1000; // 3 hours
+const lockExpiryTime = 2 * 60 * 1000; // 2 minutes occupancy lock
 
 
 let userFingerprint = localStorage.getItem('genkou_fingerprint');
@@ -110,6 +112,40 @@ async function fetchSquares() {
     });
 }
 
+// Fetch current occupancy locks
+async function fetchLocks() {
+    const { data, error } = await supabaseClient
+        .from('cell_locks')
+        .select('*');
+
+    if (error) return;
+
+    cellLocks = data;
+    renderLocks();
+}
+
+// Render locked cells
+function renderLocks() {
+    // Remove existing locked states
+    document.querySelectorAll('.grid-cell.locked').forEach(cell => {
+        cell.classList.remove('locked');
+    });
+
+    const now = Date.now();
+    cellLocks.forEach(lock => {
+        const lockedAt = new Date(lock.locked_at).getTime();
+        // If lock is still valid
+        if (now - lockedAt < lockExpiryTime) {
+            const cell = document.querySelector(`.grid-cell[data-row="${lock.row_idx}"][data-col="${lock.col_idx}"]`);
+            // Only show locked if it's not already occupied by a character
+            if (cell && !cell.classList.contains('occupied')) {
+                cell.classList.add('locked');
+            }
+        }
+    });
+}
+
+
 function updateCharOpacity(charSpan, createdAt) {
     const age = Date.now() - new Date(createdAt).getTime();
     const opacity = Math.max(0.1, 1 - (age / vanishTime));
@@ -152,9 +188,20 @@ function renderSquare(sq, isNew) {
 }
 
 // Handle cell click
-function handleCellClick(r, c) {
+async function handleCellClick(r, c) {
     const existing = squares.find(s => s.row_idx === r && s.col_idx === c);
     if (existing) return;
+
+    // Check if locked by someone else
+    const lock = cellLocks.find(l => l.row_idx === r && l.col_idx === c);
+    if (lock) {
+        const lockedAt = new Date(lock.locked_at).getTime();
+        // If lock is still valid and not mine
+        if (Date.now() - lockedAt < lockExpiryTime && lock.user_fingerprint !== getApiFingerprint()) {
+            showToast('誰かがこのマスに執筆中です...');
+            return;
+        }
+    }
 
     const now = Date.now();
     const diff = now - lastPostedTime;
@@ -164,12 +211,64 @@ function handleCellClick(r, c) {
         return;
     }
 
+    // Try to acquire lock
+    const { error: lockError } = await supabaseClient
+        .from('cell_locks')
+        .upsert([
+            {
+                row_idx: r,
+                col_idx: c,
+                user_fingerprint: getApiFingerprint(),
+                locked_at: new Date().toISOString()
+            }
+        ]);
+
+    if (lockError) {
+        showToast('占有に失敗しました。再度お試しください。');
+        return;
+    }
+
     selectedCell = { r, c };
     inputModal.classList.remove('hidden');
     charInput.value = '';
     charInput.focus();
     updateSubmitState();
+
+    // Start heartbeat to keep lock alive while modal is open
+    lockHeartbeatInterval = setInterval(async () => {
+        if (!selectedCell) return;
+        await supabaseClient
+            .from('cell_locks')
+            .upsert([
+                {
+                    row_idx: selectedCell.r,
+                    col_idx: selectedCell.c,
+                    user_fingerprint: getApiFingerprint(),
+                    locked_at: new Date().toISOString()
+                }
+            ]);
+    }, 60000); // Heartbeat every minute
 }
+
+let lockHeartbeatInterval = null;
+
+async function clearCurrentLock() {
+    if (lockHeartbeatInterval) {
+        clearInterval(lockHeartbeatInterval);
+        lockHeartbeatInterval = null;
+    }
+    if (!selectedCell) return;
+    await supabaseClient
+        .from('cell_locks')
+        .delete()
+        .match({
+            row_idx: selectedCell.r,
+            col_idx: selectedCell.c,
+            user_fingerprint: getApiFingerprint()
+        });
+    selectedCell = null;
+}
+
 
 charInput.addEventListener('input', () => {
     if (!isDebug()) {
@@ -222,18 +321,24 @@ submitBtn.addEventListener('click', async () => {
 
     showToast('一文字、刻みました');
     fetchSquares();
+    await clearCurrentLock();
 });
 
-cancelBtn.addEventListener('click', () => {
+
+cancelBtn.addEventListener('click', async () => {
     inputModal.classList.add('hidden');
+    await clearCurrentLock();
 });
+
 
 // Close modal when clicking outside
-inputModal.addEventListener('click', (e) => {
+inputModal.addEventListener('click', async (e) => {
     if (e.target === inputModal) {
         inputModal.classList.add('hidden');
+        await clearCurrentLock();
     }
 });
+
 
 const closeCooldown = () => {
     cooldownOverlay.classList.remove('visible');
@@ -282,24 +387,33 @@ function showToast(msg) {
 
 // Sharing and Image Export
 function share(platform) {
-    const url = encodeURIComponent(window.location.href);
+    const url = window.location.href.includes('localhost') || window.location.protocol === 'file:'
+        ? 'https://genkou-youshi-sns.vercel.app/'
+        : window.location.href;
+    const encodedUrl = encodeURIComponent(url);
     const text = encodeURIComponent('言の葉の社 - 一マスの聖域');
     let shareUrl = '';
 
     switch (platform) {
         case 'x':
-            shareUrl = `https://twitter.com/intent/tweet?url=${url}&text=${text}`;
+            shareUrl = `https://twitter.com/intent/tweet?url=${encodedUrl}&text=${text}`;
             break;
         case 'facebook':
-            shareUrl = `https://www.facebook.com/sharer/sharer.php?u=${url}`;
+            if (window.FB) {
+                window.FB.ui({
+                    method: 'share',
+                    href: url,
+                }, function (response) { });
+                return;
+            }
+            shareUrl = `https://www.facebook.com/sharer/sharer.php?u=${encodedUrl}&display=popup`;
             break;
-        case 'instagram':
-            showToast('Instagramはアプリから共有してください');
-            return;
     }
 
-    if (shareUrl) window.open(shareUrl, '_blank');
+
+    if (shareUrl) window.open(shareUrl, '_blank', 'width=600,height=400');
 }
+
 
 async function downloadImage() {
     const paper = document.querySelector('.paper');
@@ -385,16 +499,23 @@ document.getElementById('copy-btn')?.addEventListener('click', copyImage);
 
 // Real-time updates
 const channel = supabaseClient
-    .channel('public:squares')
+    .channel('public:changes')
     .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'squares' }, payload => {
         if (!squares.find(s => s.id === payload.new.id)) {
             squares.push(payload.new);
             renderSquare(payload.new, true);
         }
     })
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'cell_locks' }, () => {
+        fetchLocks();
+    })
     .subscribe();
 
 // Start
 initGrid();
 fetchSquares();
+fetchLocks();
 setInterval(fetchSquares, 30000);
+setInterval(fetchLocks, 10000); // More frequent lock checking
+setInterval(renderLocks, 2000); // Frequent rendering to expire visual locks locally
+
