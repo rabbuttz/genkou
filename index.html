@@ -8,10 +8,9 @@
     <meta name="description" content="原稿用紙の上に一文字を置き去る、静かな作文SNS。10分に一度の刻印、3時間で消えゆく言葉。原稿用紙SNSで綴る、儚い思考の断片。">
     <meta name="keywords" content="原稿用紙 SNS, 作文 SNS, 言の葉の社, 縦書き SNS, 1文字 SNS, 匿名 SNS">
     <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com">
-    <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+JP:wght@400;700&display=swap" rel="stylesheet">
-    <script src="https://unpkg.com/@phosphor-icons/web"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/html-to-image/1.11.11/html-to-image.min.js"></script>
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+JP:wght@400;700&display=swap" rel="stylesheet"
+        crossorigin="anonymous">
     <style>
         :root {
             /* Premium Theme Colors */
@@ -528,6 +527,46 @@
             opacity: 1;
         }
 
+        #toast {
+            position: fixed;
+            bottom: 2rem;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(197, 160, 89, 0.15);
+            backdrop-filter: blur(10px);
+            border: 1px solid var(--accent-gold);
+            color: var(--accent-gold);
+            padding: 0.8rem 2rem;
+            border-radius: 40px;
+            z-index: 200;
+            font-size: 0.9rem;
+            letter-spacing: 0.1rem;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4),
+                0 0 20px rgba(197, 160, 89, 0.2);
+            animation: toastIn 0.5s cubic-bezier(0.25, 1, 0.5, 1) forwards;
+            pointer-events: none;
+            display: flex;
+            align-items: center;
+            gap: 0.8rem;
+        }
+
+        #toast::before {
+            content: '🕯️';
+            font-size: 1rem;
+        }
+
+        @keyframes toastIn {
+            0% {
+                opacity: 0;
+                transform: translate(-50%, 20px);
+            }
+
+            100% {
+                opacity: 1;
+                transform: translate(-50%, 0);
+            }
+        }
+
         .hidden {
             display: none !important;
         }
@@ -540,8 +579,10 @@
             }
         }
     </style>
+    <script src="https://unpkg.com/@phosphor-icons/web" crossorigin="anonymous"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html-to-image/1.11.11/html-to-image.min.js"
+        crossorigin="anonymous"></script>
 </head>
-
 
 <body>
     <div id="app">
@@ -566,7 +607,6 @@
                 <p class="subtitle">一マスの聖域</p>
             </header>
         </aside>
-
 
         <main>
             <div id="canvas-container">
@@ -610,7 +650,7 @@
     </div>
 
     <!-- Supabase Client -->
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2" crossorigin="anonymous"></script>
     <script src="app.js"></script>
 </body>
 

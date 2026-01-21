@@ -311,11 +311,22 @@ async function downloadImage() {
             return true;
         },
         backgroundColor: '#0f0f12',
+        cacheBust: true,
+        // Remote fonts often cause SecurityError in some environments.
+        // We try to include them, but allow failure.
     };
 
     try {
         showToast('画像を生成中...');
-        const dataUrl = await htmlToImage.toPng(paper, options);
+        // Try with fonts first
+        let dataUrl;
+        try {
+            dataUrl = await htmlToImage.toPng(paper, options);
+        } catch (fontErr) {
+            console.warn('Font embedding failed, retrying without fonts:', fontErr);
+            dataUrl = await htmlToImage.toPng(paper, { ...options, skipFonts: true });
+        }
+
         const link = document.createElement('a');
         link.download = `kotonoha-${Date.now()}.png`;
         link.href = dataUrl;
@@ -336,11 +347,19 @@ async function copyImage() {
             return true;
         },
         backgroundColor: '#0f0f12',
+        cacheBust: true,
     };
 
     try {
         showToast('画像をコピー中...');
-        const blob = await htmlToImage.toBlob(paper, options);
+        let blob;
+        try {
+            blob = await htmlToImage.toBlob(paper, options);
+        } catch (fontErr) {
+            console.warn('Font embedding failed for copy, retrying without fonts:', fontErr);
+            blob = await htmlToImage.toBlob(paper, { ...options, skipFonts: true });
+        }
+
         const item = new ClipboardItem({ "image/png": blob });
         await navigator.clipboard.write([item]);
         showToast('クリップボードにコピーしました');
@@ -348,6 +367,7 @@ async function copyImage() {
         handleImageError(err);
     }
 }
+
 
 function handleImageError(err) {
     console.error('Image Export Error:', err);
