@@ -8,17 +8,565 @@
     <meta name="description" content="原稿用紙の上に一文字を置き去る、静かな作文SNS。10分に一度の刻印、3時間で消えゆく言葉。原稿用紙SNSで綴る、儚い思考の断片。">
     <meta name="keywords" content="原稿用紙 SNS, 作文 SNS, 言の葉の社, 縦書き SNS, 1文字 SNS, 匿名 SNS">
     <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="preconnect" href="https://fonts.gstatic.com">
     <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+JP:wght@400;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="style.css">
+    <script src="https://unpkg.com/@phosphor-icons/web"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html-to-image/1.11.11/html-to-image.min.js"></script>
+    <style>
+        :root {
+            /* Premium Theme Colors */
+            --bg-dark: #0f0f12;
+            --paper-color: #fdfaf5;
+            /* Warm Washi paper color */
+            --line-color: #d68550;
+            /* Traditional warm orange/brown */
+            --line-color-light: #e69b6a;
+            --text-ink: #1a1a1a;
+            --accent-gold: #c5a059;
+            --glass-bg: rgba(255, 255, 255, 0.05);
+            --glass-border: rgba(255, 255, 255, 0.1);
+
+            /* Layout Constants */
+            --cell-size: clamp(16px, 3.5vw, 32px);
+            --gap-size: clamp(4px, 1vw, 8px);
+            --border-thick: 2.5px;
+            --border-thin: 1px;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            background-color: var(--bg-dark);
+            color: #eee;
+            font-family: 'Noto Serif JP', serif;
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            overflow-x: hidden;
+        }
+
+        #app {
+            width: 100%;
+            min-height: 100vh;
+            padding: 2rem;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            position: relative;
+        }
+
+
+        /* Side Navigation */
+        .side-nav {
+            position: fixed;
+            top: 50%;
+            transform: translateY(-50%);
+            display: flex;
+            flex-direction: column;
+            gap: 1.5rem;
+            z-index: 50;
+            padding: 1.5rem;
+        }
+
+        .side-nav.left {
+            left: 2rem;
+            align-items: center;
+        }
+
+        .side-nav.right {
+            right: 2rem;
+        }
+
+        .nav-group {
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+        }
+
+        .nav-divider {
+            width: 20px;
+            height: 1px;
+            background: var(--glass-border);
+        }
+
+        .icon-btn {
+            width: 48px;
+            height: 48px;
+            border-radius: 50%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 1.5rem;
+            background: var(--glass-bg);
+            border: 1px solid var(--glass-border);
+            color: var(--accent-gold);
+            transition: all 0.3s cubic-bezier(0.25, 1, 0.5, 1);
+            padding: 0;
+        }
+
+        .icon-btn:hover {
+            background: var(--accent-gold);
+            color: var(--bg-dark);
+            transform: scale(1.1);
+            box-shadow: 0 0 20px rgba(197, 160, 89, 0.4);
+        }
+
+        /* Vertical Header */
+        .vertical-header {
+            writing-mode: vertical-rl;
+            text-orientation: mixed;
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .vertical-header h1 {
+            font-size: 3rem;
+            letter-spacing: 1rem;
+            color: var(--accent-gold);
+            text-shadow: 0 0 30px rgba(197, 160, 89, 0.3);
+            margin: 0;
+            padding: 0;
+        }
+
+        .vertical-header .subtitle {
+            font-size: 0.9rem;
+            color: #888;
+            letter-spacing: 0.3rem;
+            writing-mode: vertical-rl;
+        }
+
+
+        /* Canvas & Paper */
+        #canvas-container {
+            width: 100%;
+            display: flex;
+            justify-content: center;
+            perspective: 1000px;
+        }
+
+        .paper {
+            background-color: var(--paper-color);
+            padding: clamp(20px, 4vw, 50px) clamp(30px, 6vw, 70px);
+            box-shadow: 0 20px 50px rgba(0, 0, 0, 0.5),
+                inset 0 0 100px rgba(214, 133, 80, 0.05);
+            position: relative;
+            width: fit-content;
+            border-radius: 2px;
+            transform: rotateX(2deg);
+        }
+
+        .main-frame {
+            display: flex;
+            flex-direction: row-reverse;
+            border: var(--border-thick) solid var(--line-color);
+        }
+
+        .block {
+            display: flex;
+            flex-direction: row-reverse;
+            gap: var(--gap-size);
+            padding: 0 var(--gap-size);
+        }
+
+        .column {
+            display: flex;
+            flex-direction: column;
+            width: var(--cell-size);
+            border-left: var(--border-thin) solid var(--line-color);
+            border-right: var(--border-thin) solid var(--line-color);
+        }
+
+        .grid-cell {
+            width: var(--cell-size);
+            height: var(--cell-size);
+            border-bottom: var(--border-thin) solid var(--line-color-light);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: calc(var(--cell-size) * 0.7);
+            cursor: pointer;
+            transition: background-color 0.2s ease;
+            user-select: none;
+            position: relative;
+            color: var(--text-ink);
+            line-height: 1;
+            /* Ensure vertical context for the cell */
+            writing-mode: vertical-rl;
+        }
+
+        .grid-cell:last-child {
+            border-bottom: none;
+        }
+
+        .grid-cell:hover {
+            background-color: rgba(214, 133, 80, 0.1);
+        }
+
+        .grid-cell.occupied {
+            cursor: default;
+        }
+
+        /* Time remaining tooltip */
+        .time-remaining {
+            position: absolute;
+            top: -20px;
+            left: 50%;
+            transform: translateX(-50%);
+            font-size: 9px;
+            background: var(--paper-color);
+            color: var(--line-color);
+            padding: 2px 6px;
+            border-radius: 4px;
+            border: 1px solid var(--line-color-light);
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.3s ease, transform 0.3s ease;
+            white-space: nowrap;
+            z-index: 20;
+            font-weight: bold;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+        }
+
+        .grid-cell.occupied:hover .time-remaining {
+            opacity: 1;
+            transform: translateX(-50%) translateY(-2px);
+        }
+
+        /* Spine / Gutter */
+        .center-gutter {
+            width: calc(var(--cell-size) * 1.2);
+            position: relative;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            border-left: var(--border-thick) solid var(--line-color);
+            border-right: var(--border-thick) solid var(--line-color);
+            background-color: var(--paper-color);
+        }
+
+        .gyobi-mark {
+            position: absolute;
+            color: var(--line-color);
+            font-weight: 900;
+            font-size: 14px;
+            /* Reduced from 16px */
+            left: calc(50% + 0.5px);
+            /* Moved slightly left from 1.5px */
+            z-index: 1;
+            background-color: var(--paper-color);
+            width: 1.2em;
+            height: 1.2em;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .gyobi-mark.top {
+            top: 25%;
+            transform: translate(-50%, -50%) rotate(90deg) scale(0.5, 1.5);
+            /* Scaled down slightly */
+        }
+
+        .gyobi-mark.top::after {
+            content: "【";
+        }
+
+        .gyobi-mark.bottom {
+            bottom: 25%;
+            transform: translate(-50%, 50%) rotate(90deg) scale(0.5, 1.5);
+            /* Scaled down slightly */
+        }
+
+        .gyobi-mark.bottom::after {
+            content: "】";
+        }
+
+        /* Tombos (Crop Marks) */
+        .tombo-top,
+        .tombo-bottom {
+            position: absolute;
+            width: 1px;
+            height: 10px;
+            background-color: var(--line-color);
+            left: 50%;
+            transform: translateX(-50%);
+        }
+
+        .tombo-top {
+            top: 20px;
+        }
+
+        .tombo-bottom {
+            bottom: 20px;
+        }
+
+        .footer-text {
+            position: absolute;
+            bottom: 15px;
+            left: clamp(30px, 6vw, 70px);
+            color: var(--line-color);
+            font-size: 13px;
+            font-weight: bold;
+            letter-spacing: 1px;
+            opacity: 0.7;
+        }
+
+        /* Modal Styling */
+        #input-modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.8);
+            backdrop-filter: blur(8px);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 100;
+            transition: opacity 0.3s ease;
+        }
+
+        .modal-content {
+            background: var(--glass-bg);
+            padding: 3rem;
+            border-radius: 20px;
+            border: 1px solid var(--glass-border);
+            text-align: center;
+            box-shadow: 0 30px 60px rgba(0, 0, 0, 0.4);
+        }
+
+        #char-input {
+            background: transparent;
+            border: none;
+            border-bottom: 2px solid var(--accent-gold);
+            color: #fff;
+            font-size: 4rem;
+            width: 6rem;
+            text-align: center;
+            margin: 2rem 0;
+            font-family: inherit;
+            outline: none;
+        }
+
+        .modal-actions {
+            display: flex;
+            gap: 1rem;
+            justify-content: center;
+        }
+
+        button {
+            background: transparent;
+            border: 1px solid var(--accent-gold);
+            color: var(--accent-gold);
+            padding: 0.8rem 2rem;
+            border-radius: 30px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            font-family: inherit;
+        }
+
+        button:hover:not(:disabled) {
+            background: var(--accent-gold);
+            color: var(--bg-dark);
+        }
+
+        button:disabled {
+            opacity: 0.3;
+            cursor: not-allowed;
+        }
+
+        /* Animations */
+        .char {
+            display: inline-block;
+            /* Use vertical writing mode for correct glyph variants (periods, brackets) */
+            writing-mode: vertical-rl;
+            text-orientation: mixed;
+            animation: inkSoak 1.2s cubic-bezier(0.25, 1, 0.5, 1) forwards;
+        }
+
+        @keyframes inkSoak {
+            0% {
+                opacity: 0;
+                transform: scale(1.4) translateY(8px);
+                filter: blur(8px);
+            }
+
+            40% {
+                opacity: 0.6;
+                filter: blur(2px);
+            }
+
+            100% {
+                opacity: 1;
+                transform: scale(1);
+                filter: blur(0);
+            }
+        }
+
+        /* Ripple */
+        .grid-cell.just-added::after {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 0;
+            height: 0;
+            border: 2px solid rgba(214, 133, 80, 0.5);
+            border-radius: 50%;
+            animation: rippleEffect 0.8s ease-out forwards;
+        }
+
+        @keyframes rippleEffect {
+            0% {
+                width: 0;
+                height: 0;
+                opacity: 0.8;
+            }
+
+            100% {
+                width: 250%;
+                height: 250%;
+                opacity: 0;
+            }
+        }
+
+        /* Cooldown Overlay */
+        #cooldown-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.85);
+            backdrop-filter: blur(12px);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 110;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.8s cubic-bezier(0.25, 1, 0.5, 1);
+        }
+
+        #cooldown-overlay.visible {
+            opacity: 1;
+            pointer-events: auto;
+        }
+
+        .cooldown-content {
+            text-align: center;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 2rem;
+            transition: transform 0.8s cubic-bezier(0.25, 1, 0.5, 1);
+            transform: scale(0.95);
+        }
+
+        #cooldown-overlay.visible .cooldown-content {
+            transform: scale(1);
+        }
+
+        .zen-circle {
+            width: 120px;
+            height: 120px;
+            border: 2px solid var(--accent-gold);
+            border-radius: 50%;
+            position: relative;
+            animation: zenPulse 4s ease-in-out infinite;
+        }
+
+        @keyframes zenPulse {
+            0% {
+                transform: scale(1);
+                opacity: 0.3;
+            }
+
+            50% {
+                transform: scale(1.1);
+                opacity: 1;
+                box-shadow: 0 0 30px var(--accent-gold);
+            }
+
+            100% {
+                transform: scale(1);
+                opacity: 0.3;
+            }
+        }
+
+        .cooldown-text {
+            font-size: 1.2rem;
+            color: var(--accent-gold);
+            letter-spacing: 0.3rem;
+            opacity: 0.8;
+        }
+
+        #cooldown-timer {
+            font-size: 3rem;
+            color: #fff;
+            font-weight: 300;
+            letter-spacing: 0.5rem;
+        }
+
+        #cooldown-close-btn {
+            margin-top: 1rem;
+            padding: 0.6rem 2.5rem;
+            font-size: 0.9rem;
+            opacity: 0.6;
+        }
+
+        #cooldown-close-btn:hover {
+            opacity: 1;
+        }
+
+        .hidden {
+            display: none !important;
+        }
+
+        /* Responsive scale */
+        @media (max-width: 900px) {
+            .paper {
+                transform: scale(0.65) rotateX(0deg);
+                transform-origin: top center;
+            }
+        }
+    </style>
 </head>
+
 
 <body>
     <div id="app">
-        <header>
-            <h1>言の葉の社</h1>
-            <p class="subtitle">10分に一度、一マスの聖域。</p>
-        </header>
+        <aside class="side-nav left">
+            <div class="nav-group social">
+                <button class="icon-btn" onclick="share('x')" title="Xで共有"><i class="ph ph-x-logo"></i></button>
+                <button class="icon-btn" onclick="share('facebook')" title="Facebookで共有"><i
+                        class="ph ph-facebook-logo"></i></button>
+                <button class="icon-btn" onclick="share('instagram')" title="Instagram"><i
+                        class="ph ph-instagram-logo"></i></button>
+            </div>
+            <div class="nav-divider"></div>
+            <div class="nav-group actions">
+                <button id="download-btn" class="icon-btn" title="画像を保存"><i class="ph ph-download-simple"></i></button>
+                <button id="copy-btn" class="icon-btn" title="画像としてコピー"><i class="ph ph-copy"></i></button>
+            </div>
+        </aside>
+
+        <aside class="side-nav right">
+            <header class="vertical-header">
+                <h1>言の葉の社</h1>
+                <p class="subtitle">一マスの聖域</p>
+            </header>
+        </aside>
+
 
         <main>
             <div id="canvas-container">

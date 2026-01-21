@@ -83,16 +83,21 @@ async function fetchSquares() {
         return;
     }
 
-    // Clear grid of characters that should have vanished
+    // Clear grid of vanished characters and update opacity for others
     const cells = document.querySelectorAll('.grid-cell.occupied');
     cells.forEach(cell => {
-        // Find if this cell is still represented in the data
         const r = cell.dataset.row;
         const c = cell.dataset.col;
-        const stillExists = data.find(sq => sq.row_idx == r && sq.col_idx == c);
-        if (!stillExists) {
+        const sq = data.find(s => s.row_idx == r && s.col_idx == c);
+
+        if (!sq) {
             cell.classList.remove('occupied');
             cell.innerHTML = '';
+        } else {
+            const charSpan = cell.querySelector('.char');
+            if (charSpan) {
+                updateCharOpacity(charSpan, sq.created_at);
+            }
         }
     });
 
@@ -102,18 +107,6 @@ async function fetchSquares() {
     squares.forEach(sq => {
         const isNew = !previousIds.has(sq.id) && previousIds.size > 0;
         renderSquare(sq, isNew);
-    });
-
-    // Update opacity for all existing characters
-    const cells = document.querySelectorAll('.grid-cell.occupied');
-    cells.forEach(cell => {
-        const charSpan = cell.querySelector('.char');
-        if (charSpan) {
-            const sq = squares.find(s => s.row_idx == cell.dataset.row && s.col_idx == cell.dataset.col);
-            if (sq) {
-                updateCharOpacity(charSpan, sq.created_at);
-            }
-        }
     });
 }
 
@@ -286,6 +279,89 @@ function showToast(msg) {
         toast.classList.add('hidden');
     }, 3000);
 }
+
+// Sharing and Image Export
+function share(platform) {
+    const url = encodeURIComponent(window.location.href);
+    const text = encodeURIComponent('言の葉の社 - 一マスの聖域');
+    let shareUrl = '';
+
+    switch (platform) {
+        case 'x':
+            shareUrl = `https://twitter.com/intent/tweet?url=${url}&text=${text}`;
+            break;
+        case 'facebook':
+            shareUrl = `https://www.facebook.com/sharer/sharer.php?u=${url}`;
+            break;
+        case 'instagram':
+            showToast('Instagramはアプリから共有してください');
+            return;
+    }
+
+    if (shareUrl) window.open(shareUrl, '_blank');
+}
+
+async function downloadImage() {
+    const paper = document.querySelector('.paper');
+    if (!paper) return;
+
+    const options = {
+        filter: (node) => {
+            if (node.classList?.contains('side-nav')) return false;
+            return true;
+        },
+        backgroundColor: '#0f0f12',
+    };
+
+    try {
+        showToast('画像を生成中...');
+        const dataUrl = await htmlToImage.toPng(paper, options);
+        const link = document.createElement('a');
+        link.download = `kotonoha-${Date.now()}.png`;
+        link.href = dataUrl;
+        link.click();
+        showToast('保存しました');
+    } catch (err) {
+        handleImageError(err);
+    }
+}
+
+async function copyImage() {
+    const paper = document.querySelector('.paper');
+    if (!paper) return;
+
+    const options = {
+        filter: (node) => {
+            if (node.classList?.contains('side-nav')) return false;
+            return true;
+        },
+        backgroundColor: '#0f0f12',
+    };
+
+    try {
+        showToast('画像をコピー中...');
+        const blob = await htmlToImage.toBlob(paper, options);
+        const item = new ClipboardItem({ "image/png": blob });
+        await navigator.clipboard.write([item]);
+        showToast('クリップボードにコピーしました');
+    } catch (err) {
+        handleImageError(err);
+    }
+}
+
+function handleImageError(err) {
+    console.error('Image Export Error:', err);
+    if (window.location.protocol === 'file:') {
+        showToast('エラー: ローカルファイルとして開いているため制限されています。サーバー経由で開いてください。');
+    } else {
+        showToast('出力に失敗しました。ブラウザの制限を確認してください。');
+    }
+}
+
+
+document.getElementById('download-btn')?.addEventListener('click', downloadImage);
+document.getElementById('copy-btn')?.addEventListener('click', copyImage);
+
 
 // Real-time updates
 const channel = supabaseClient
