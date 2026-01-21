@@ -8,6 +8,8 @@ const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 // State Management
 let squares = [];
 const waitTime = 10 * 60 * 1000; // 10 mins
+const vanishTime = 3 * 60 * 60 * 1000; // 3 hours
+
 
 let userFingerprint = localStorage.getItem('genkou_fingerprint');
 if (!userFingerprint) {
@@ -67,13 +69,14 @@ function initGrid() {
     }
 }
 
-// Fetch squares (Only last 1 hour)
+// Fetch squares (Only last 3 hours)
 async function fetchSquares() {
-    const oneHourAgo = new Date(Date.now() - 3600000).toISOString();
+    const vanishLimit = new Date(Date.now() - vanishTime).toISOString();
     const { data, error } = await supabaseClient
         .from('squares')
         .select('*')
-        .gt('created_at', oneHourAgo);
+        .gt('created_at', vanishLimit);
+
 
     if (error) {
         showToast('データの取得に失敗しました');
@@ -97,9 +100,29 @@ async function fetchSquares() {
     squares = data;
 
     squares.forEach(sq => {
-        renderSquare(sq, !previousIds.has(sq.id) && previousIds.size > 0);
+        const isNew = !previousIds.has(sq.id) && previousIds.size > 0;
+        renderSquare(sq, isNew);
+    });
+
+    // Update opacity for all existing characters
+    const cells = document.querySelectorAll('.grid-cell.occupied');
+    cells.forEach(cell => {
+        const charSpan = cell.querySelector('.char');
+        if (charSpan) {
+            const sq = squares.find(s => s.row_idx == cell.dataset.row && s.col_idx == cell.dataset.col);
+            if (sq) {
+                updateCharOpacity(charSpan, sq.created_at);
+            }
+        }
     });
 }
+
+function updateCharOpacity(charSpan, createdAt) {
+    const age = Date.now() - new Date(createdAt).getTime();
+    const opacity = Math.max(0.1, 1 - (age / vanishTime));
+    charSpan.style.opacity = opacity;
+}
+
 
 // Render square
 function renderSquare(sq, isNew) {
@@ -115,7 +138,9 @@ function renderSquare(sq, isNew) {
         const charSpan = document.createElement('span');
         charSpan.className = 'char';
         charSpan.textContent = sq.character;
+        updateCharOpacity(charSpan, sq.created_at);
         cell.appendChild(charSpan);
+
 
         // Add time remaining tooltip
         const timeSpan = document.createElement('span');
@@ -124,11 +149,12 @@ function renderSquare(sq, isNew) {
 
         cell.addEventListener('mouseenter', () => {
             const created = new Date(sq.created_at).getTime();
-            const expires = created + 3600000; // 1 hour later
+            const expires = created + vanishTime;
             const remaining = expires - Date.now();
             const mins = Math.max(0, Math.ceil(remaining / 60000));
             timeSpan.textContent = `あと ${mins} 分`;
         });
+
     }
 }
 
@@ -173,14 +199,14 @@ submitBtn.addEventListener('click', async () => {
 
     const { error } = await supabaseClient
         .from('squares')
-        .insert([
+        .upsert([
             {
                 row_idx: selectedCell.r,
                 col_idx: selectedCell.c,
                 character: char,
                 user_fingerprint: getApiFingerprint()
             }
-        ]);
+        ], { onConflict: 'row_idx, col_idx' });
 
     if (error) {
         if (error.code === '23505') {
