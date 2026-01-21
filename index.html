@@ -200,7 +200,25 @@
             position: relative;
             width: fit-content;
             border-radius: 2px;
-            transform: rotateX(2deg);
+            /* Premium Entrance Animation */
+            opacity: 1;
+            transform-origin: center center;
+            animation: paperEntrance 1.8s cubic-bezier(0.22, 1, 0.36, 1) both;
+            animation-delay: 0.2s;
+        }
+
+        @keyframes paperEntrance {
+            0% {
+                opacity: 0;
+                transform: rotateX(15deg) translateY(60px) scale(0.96);
+                filter: blur(10px);
+            }
+
+            100% {
+                opacity: 1;
+                transform: rotateX(0deg) translateY(0) scale(1);
+                filter: blur(0);
+            }
         }
 
         .main-frame {
